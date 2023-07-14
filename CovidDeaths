@@ -108,7 +108,7 @@ JOIN
 SELECT deaths.continent, deaths.location, deaths.date, deaths.population, vac.new_vaccinations
 , SUM(vac.new_vaccinations) OVER (Partition by deaths.Location ORDER BY deaths.location, deaths.Date) as RollingPeopleVaccinated
 , (RollingPeopleVaccinated/population)*100
-FROM `autonomous-time-391919.PORTOFOLIOPROJECT1.covidvaccinations`
+FROM `autonomous-time-391919.PORTOFOLIOPROJECT1.covidvaccinations` vac
 JOIN `autonomous-time-391919.PORTOFOLIOPROJECT1.Coviddeaths` deaths
 	ON deaths.location = vac.location
 	AND deaths.date = vac.date
@@ -124,7 +124,7 @@ AS
 SELECT deaths.continent, deaths.location, deaths.date, deaths.population, vac.new_vaccinations
 , SUM(vac.new_vaccinations) OVER (Partition by deaths.Location ORDER BY deaths.location, deaths.Date) as RollingPeopleVaccinated
 , (RollingPeopleVaccinated/population)*100
-FROM `autonomous-time-391919.PORTOFOLIOPROJECT1.covidvaccinations`
+FROM `autonomous-time-391919.PORTOFOLIOPROJECT1.covidvaccinations` vac
 JOIN `autonomous-time-391919.PORTOFOLIOPROJECT1.Coviddeaths` deaths
 	ON deaths.location = vac.location
 	AND deaths.date = vac.date
@@ -153,7 +153,7 @@ INSERT INTO #PercentPopulationVaccinated
 SELECT deaths.continent, deaths.location, deaths.date, deaths.population, vac.new_vaccinations
 , SUM(vac.new_vaccinations) OVER (Partition by deaths.Location ORDER BY deaths.location, deaths.Date) as RollingPeopleVaccinated
 , (RollingPeopleVaccinated/population)*100
-FROM `autonomous-time-391919.PORTOFOLIOPROJECT1.covidvaccinations`
+FROM `autonomous-time-391919.PORTOFOLIOPROJECT1.covidvaccinations` vac
 JOIN `autonomous-time-391919.PORTOFOLIOPROJECT1.Coviddeaths` deaths
 	ON deaths.location = vac.location
 	AND deaths.date = vac.date
@@ -171,7 +171,7 @@ CREATE VIEW PercentPopulationVaccinated AS
 SELECT deaths.continent, deaths.location, deaths.date, deaths.population, vac.new_vaccinations
 , SUM(vac.new_vaccinations) OVER (Partition by deaths.Location ORDER BY deaths.location, deaths.Date) as RollingPeopleVaccinated
 , (RollingPeopleVaccinated/population)*100
-FROM `autonomous-time-391919.PORTOFOLIOPROJECT1.covidvaccinations`
+FROM `autonomous-time-391919.PORTOFOLIOPROJECT1.covidvaccinations` vac
 JOIN `autonomous-time-391919.PORTOFOLIOPROJECT1.Coviddeaths` deaths
 	ON deaths.location = vac.location
 	AND deaths.date = vac.date
