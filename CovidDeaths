@@ -1,0 +1,182 @@
+---Select data that we are starting with 
+
+SELECT
+  location, date, total_cases, new_cases, total_deaths, population
+   FROM `autonomous-time-391919.PORTOFOLIOPROJECT1.Coviddeaths` 
+   ORDER BY 1,2
+
+
+   ---- Looking at total cases vs total deaths 
+   ---- Shows likelihood of dying if you contract covid in the united states
+   SELECT
+    location, date, total_cases, total_deaths, (total_deaths/total_cases)*100
+    AS deathpercentages
+   FROM `autonomous-time-391919.PORTOFOLIOPROJECT1.Coviddeaths` 
+   WHERE location = 'United States'
+   ORDER BY 1,2
+
+   ---- Looking at total cases vs population 
+   ---- Shows what percentage of population contracted covid
+
+   SELECT
+    location, date, population, total_cases, (total_cases/population)*100
+    AS percentofpopulationinfected
+   FROM `autonomous-time-391919.PORTOFOLIOPROJECT1.Coviddeaths` 
+   ORDER BY 1,2
+
+   ---- Looking at total cases vs population 
+   ---- Shows what percentage of population contracted covid
+   ---- In Morocco 
+
+  SELECT
+    location, date, population, total_cases, (total_cases/population)*100
+    AS percentofpopulationinfected
+   FROM `autonomous-time-391919.PORTOFOLIOPROJECT1.Coviddeaths` 
+   WHERE location = 'Morocco'
+  
+   
+  --- Looking at countries with highest infection rate compared to population
+
+ SELECT
+    location, population, MAX(total_cases)AS highest_infectionrate,MAX ((total_cases/population))*100
+    AS percentofpopulationinfected
+   FROM `autonomous-time-391919.PORTOFOLIOPROJECT1.Coviddeaths` 
+   GROUP by location, population
+   ORDER BY percentofpopulationinfected DESC
+
+   --- Showing the countries with the highest death count per population
+   SELECT
+    location, MAX(total_deaths) AS totaldeathcount
+   FROM `autonomous-time-391919.PORTOFOLIOPROJECT1.Coviddeaths` 
+   WHERE continent IS NOT NULL
+   GROUP by location, population
+   ORDER BY totaldeathcount DESC
+
+  ---- Breaking things down by continent 
+  ---- Showing continents with highest death count per population
+
+SELECT continent, MAX(Total_deaths) AS TotalDeathCount
+FROM `autonomous-time-391919.PORTOFOLIOPROJECT1.Coviddeaths` 
+WHERE continent is  null 
+GROUP BY continent
+ORDER BY TotalDeathCount DESC
+
+-- Showing continent with highest infection rate per population
+
+SELECT
+    continent, MAX(total_cases)AS highest_infectionrate_continent,MAX ((total_cases/population))*100
+    AS percentofpopulationinfectedcontinent
+   FROM `autonomous-time-391919.PORTOFOLIOPROJECT1.Coviddeaths` 
+   WHERE continent IS NOT NULL
+   GROUP by continent
+   ORDER BY percentofpopulationinfectedcontinent DESC
+   LIMIT 1
+
+   --- GLOBAL NUMBERS 
+   
+    SELECT
+     SUM(new_cases) AS total_cases,
+     SUM(new_deaths) AS total_deaths,
+      SUM(new_deaths)/SUM(New_Cases)*100
+       AS DeathPercentage
+    FROM `autonomous-time-391919.PORTOFOLIOPROJECT1.Coviddeaths`
+    WHERE continent is not null 
+
+--- Looking at total population vs vaccinations
+
+SELECT deaths.continent, deaths.location, deaths.date, deaths.population, vac.new_vaccinations
+FROM `autonomous-time-391919.PORTOFOLIOPROJECT1.covidvaccinations` vac
+JOIN
+ `autonomous-time-391919.PORTOFOLIOPROJECT1.Coviddeaths` deaths
+ ON vac.location = deaths.location AND vac.date = deaths.date
+ WHERE vac.new_vaccinations IS NOT NULL 
+ AND deaths.continent IS NOT NULL
+ ORDER BY 1,2,3
+
+ --- Shows number of population that has received covid vaccine by country
+
+ SELECT deaths.continent, deaths.location, deaths.date, deaths.population, vac.new_vaccinations, SUM(vac.new_vaccinations) OVER (PARTITION BY deaths.location ORDER BY deaths.location, deaths.location) AS rollingpeople_vaccinated
+FROM `autonomous-time-391919.PORTOFOLIOPROJECT1.covidvaccinations` vac
+JOIN
+ `autonomous-time-391919.PORTOFOLIOPROJECT1.Coviddeaths` deaths
+ ON vac.location = deaths.location AND vac.date = deaths.date
+ WHERE  deaths.continent IS NOT NULL AND new_vaccinations IS NOT NULL
+ ORDER BY continent, rollingpeople_vaccinated
+
+  -- Shows Percentage of Population that has recieved at least one Covid Vaccine
+
+SELECT deaths.continent, deaths.location, deaths.date, deaths.population, vac.new_vaccinations
+, SUM(vac.new_vaccinations) OVER (Partition by deaths.Location ORDER BY deaths.location, deaths.Date) as RollingPeopleVaccinated
+, (RollingPeopleVaccinated/population)*100
+FROM `autonomous-time-391919.PORTOFOLIOPROJECT1.covidvaccinations`
+JOIN `autonomous-time-391919.PORTOFOLIOPROJECT1.Coviddeaths` deaths
+	ON deaths.location = vac.location
+	AND deaths.date = vac.date
+WHERE deaths.continent IS NOT NULL 
+ORDER BY 2,3
+
+
+-- Using CTE to perform Calculation on Partition By in previous query
+
+WITH PopvsVac (Continent, Location, Date, Population, New_Vaccinations, RollingPeopleVaccinated)
+AS
+(
+SELECT deaths.continent, deaths.location, deaths.date, deaths.population, vac.new_vaccinations
+, SUM(vac.new_vaccinations) OVER (Partition by deaths.Location ORDER BY deaths.location, deaths.Date) as RollingPeopleVaccinated
+, (RollingPeopleVaccinated/population)*100
+FROM `autonomous-time-391919.PORTOFOLIOPROJECT1.covidvaccinations`
+JOIN `autonomous-time-391919.PORTOFOLIOPROJECT1.Coviddeaths` deaths
+	ON deaths.location = vac.location
+	AND deaths.date = vac.date
+WHERE deaths.continent IS NOT NULL 
+ORDER BY 2,3
+)
+SELECT*, (RollingPeopleVaccinated/Population)*100
+From PopvsVac
+
+
+
+-- Using Temp Table to perform Calculation on Partition By in previous query
+
+DROP TABLE IF EXISTS #PercentPopulationVaccinated
+CREATE TABLE #PercentPopulationVaccinated
+(
+Continent nvarchar(255),
+Location nvarchar(255),
+Date datetime,
+Population numeric,
+New_vaccinations numeric,
+RollingPeopleVaccinated numeric
+)
+
+INSERT INTO #PercentPopulationVaccinated
+SELECT deaths.continent, deaths.location, deaths.date, deaths.population, vac.new_vaccinations
+, SUM(vac.new_vaccinations) OVER (Partition by deaths.Location ORDER BY deaths.location, deaths.Date) as RollingPeopleVaccinated
+, (RollingPeopleVaccinated/population)*100
+FROM `autonomous-time-391919.PORTOFOLIOPROJECT1.covidvaccinations`
+JOIN `autonomous-time-391919.PORTOFOLIOPROJECT1.Coviddeaths` deaths
+	ON deaths.location = vac.location
+	AND deaths.date = vac.date
+WHERE deaths.continent IS NOT NULL 
+)
+SELECT *, (RollingPeopleVaccinated/Population)*100
+FROM #PercentPopulationVaccinated
+
+
+
+
+-- Creating View to store data for later visualizations
+
+CREATE VIEW PercentPopulationVaccinated AS
+SELECT deaths.continent, deaths.location, deaths.date, deaths.population, vac.new_vaccinations
+, SUM(vac.new_vaccinations) OVER (Partition by deaths.Location ORDER BY deaths.location, deaths.Date) as RollingPeopleVaccinated
+, (RollingPeopleVaccinated/population)*100
+FROM `autonomous-time-391919.PORTOFOLIOPROJECT1.covidvaccinations`
+JOIN `autonomous-time-391919.PORTOFOLIOPROJECT1.Coviddeaths` deaths
+	ON deaths.location = vac.location
+	AND deaths.date = vac.date
+WHERE deaths.continent IS NOT NULL 
+
+)
+
+ 
